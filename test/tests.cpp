@@ -7,26 +7,29 @@
 #include <chrono> // NOLINT [build/c++11]
 #include "TimedDoor.h"
 
-class MockTimerClient : public TimerClient {
- public:
-    MOCK_METHOD(void, Timeout, ());
+class MockTimedDoor : public TimedDoor {
+public:
+    MockTimedDoor(int timeout) : TimedDoor(timeout) {}
+
+    MOCK_METHOD(void, lock, (), (override));
+    MOCK_METHOD(void, unlock, (), (override));
+    MOCK_METHOD(bool, isDoorOpened, (), (override));
 };
 
 class TaskDoorTime : public ::testing::Test {
- protected:
-    std::unique_ptr<TimedDoor> door;
-    MockTimerClient* mock_timer_client;
+protected:
+    MockTimedDoor* door;
 
     void SetUp() override {
-        door = std::make_unique<TimedDoor>(100);
-        mock_timer_client = new MockTimerClient();
+        door = new MockTimedDoor(100);
     }
 
     void TearDown() override {
-        delete mock_timer_client;
+        delete door;
     }
 };
 
+// Тесты
 TEST_F(TaskDoorTime, DoorLockTest) {
     EXPECT_CALL(*door, lock()).Times(1);
     door->lock();
@@ -64,13 +67,15 @@ TEST_F(TaskDoorTime, ClosedDoorNoExceptionAfterTimeout) {
 
 TEST_F(TaskDoorTime, TimerRegistersClient) {
     Timer timer;
-    EXPECT_NO_THROW(timer.tregister(5, mock_timer_client));
+    MockTimerClient mock_timer_client;
+    EXPECT_NO_THROW(timer.tregister(5, &mock_timer_client));
 }
 
 TEST_F(TaskDoorTime, TimerTriggersTimeout) {
     Timer timer;
-    EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
-    timer.tregister(5, mock_timer_client);
+    MockTimerClient mock_timer_client;
+    EXPECT_CALL(mock_timer_client, Timeout()).Times(1);
+    timer.tregister(5, &mock_timer_client);
 }
 
 TEST_F(TaskDoorTime, TimedDoorGetTimeout) {
@@ -82,7 +87,7 @@ TEST_F(TaskDoorTime, DoorAndTimerInteractionTest) {
     DoorTimerAdapter adapter(*door);
 
     EXPECT_CALL(*door, unlock()).Times(1);
-    EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
+    EXPECT_CALL(mock_timer_client, Timeout()).Times(1);
 
     door->unlock();
     timer.tregister(5, &adapter);
