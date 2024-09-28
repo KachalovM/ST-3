@@ -10,7 +10,7 @@ DoorTimerAdapter::DoorTimerAdapter(TimedDoor& door) : door(door) {}
 
 void DoorTimerAdapter::Timeout() {
     if (door.isDoorOpened()) {
-        door.throwState();
+        throw std::runtime_error("Door is not opened after timeout");
     }
 }
 
@@ -24,8 +24,6 @@ bool TimedDoor::isDoorOpened() {
 
 void TimedDoor::unlock() {
     isOpened = true;
-    Timer timer;
-    timer.tregister(iTimeout, adapter);
 }
 
 void TimedDoor::lock() {
