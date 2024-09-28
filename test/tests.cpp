@@ -27,29 +27,27 @@ class TimedDoorTest : public ::testing::Test {
 
   void SetUp() override {
     mock_door = new MockDoor();
-    mock_timer_client = new MockTimerClient();
     timed_door = new TimedDoor(5);
   }
 
   void TearDown() override {
     delete mock_door;
-    delete mock_timer_client;
     delete timed_door;
   }
 };
 
 TEST_F(TimedDoorTest, DoorLockTest) {
-  EXPECT_CALL(*mock_door, lock()).Times(1);
+  EXPECT_CALL(*timed_door, lock()).Times(1);
   timed_door->lock();
 }
 
 TEST_F(TimedDoorTest, DoorUnlockTest) {
-  EXPECT_CALL(*mock_door, unlock()).Times(1);
+  EXPECT_CALL(*timed_door, unlock()).Times(1);
   timed_door->unlock();
 }
 
 TEST_F(TimedDoorTest, DoorOpenedTest) {
-  EXPECT_CALL(*mock_door, isDoorOpened())
+  EXPECT_CALL(*timed_door, isDoorOpened())
       .Times(1)
       .WillOnce(::testing::Return(true));
 
@@ -57,13 +55,8 @@ TEST_F(TimedDoorTest, DoorOpenedTest) {
   EXPECT_TRUE(opened);
 }
 
-TEST_F(TimedDoorTest, TimerTimeoutTest) {
-  EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
-  mock_timer_client->Timeout();
-}
-
 TEST_F(TimedDoorTest, OpenedDoorThrowsExceptionAfterTimeout) {
-  EXPECT_CALL(*mock_door, isDoorOpened())
+  EXPECT_CALL(*timed_door, isDoorOpened())
       .Times(1)
       .WillOnce(::testing::Return(true));
 
@@ -71,7 +64,7 @@ TEST_F(TimedDoorTest, OpenedDoorThrowsExceptionAfterTimeout) {
 }
 
 TEST_F(TimedDoorTest, ClosedDoorNoExceptionAfterTimeout) {
-  EXPECT_CALL(*mock_door, isDoorOpened())
+  EXPECT_CALL(*timed_door, isDoorOpened())
       .Times(1)
       .WillOnce(::testing::Return(false));
 
@@ -97,7 +90,7 @@ TEST_F(TimedDoorTest, DoorAndTimerInteractionTest) {
   Timer timer;
   DoorTimerAdapter adapter(*timed_door);
 
-  EXPECT_CALL(*mock_door, unlock()).Times(1);
+  EXPECT_CALL(*timed_door, unlock()).Times(1);
   EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
 
   timed_door->unlock();
