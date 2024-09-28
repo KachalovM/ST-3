@@ -47,7 +47,9 @@ TEST_F(TaskDoorTime, DoorUnlockTest) {
 }
 
 TEST_F(TaskDoorTime, DoorOpenedTest) {
-    EXPECT_CALL(*door, isDoorOpened()).Times(1).WillOnce(::testing::Return(true));
+    EXPECT_CALL(*door, isDoorOpened())
+        .Times(1)
+        .WillOnce(::testing::Return(true));
 
     bool opened = door->isDoorOpened();
     EXPECT_TRUE(opened);
@@ -55,14 +57,24 @@ TEST_F(TaskDoorTime, DoorOpenedTest) {
 
 TEST_F(TaskDoorTime, OpenedDoorThrowsExceptionAfterTimeout) {
     door->unlock();
-    EXPECT_CALL(*door, isDoorOpened()).Times(1).WillOnce(::testing::Return(true));
+    EXPECT_CALL(*door, isDoorOpened())
+        .Times(1)
+        .WillOnce(::testing::Return(true));
 
+    std::thread([this]() {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        door->throwState();
+    }).detach();
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
     EXPECT_THROW(door->throwState(), std::runtime_error);
 }
 
 TEST_F(TaskDoorTime, ClosedDoorNoExceptionAfterTimeout) {
     door->lock();
-    EXPECT_CALL(*door, isDoorOpened()).Times(1).WillOnce(::testing::Return(false));
+    EXPECT_CALL(*door, isDoorOpened())
+        .Times(1)
+        .WillOnce(::testing::Return(false));
 
     EXPECT_NO_THROW(door->throwState());
 }
