@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <cstdint>
-#include <thread>
-#include <chrono> 
+#include <thread> // NOLINT [build/c++11]
+#include <chrono> // NOLINT [build/c++11]
 #include "TimedDoor.h"
 
 class MockDoor : public Door {
@@ -103,9 +103,4 @@ TEST_F(TimedDoorTest, DoorAndTimerInteractionTest) {
   timed_door->unlock();
   timer.tregister(5, &adapter);
   adapter.Timeout();
-}
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
 }
