@@ -7,6 +7,11 @@
 #include <chrono> // NOLINT [build/c++11]
 #include "TimedDoor.h"
 
+class MockTimerClient : public TimerClient {
+public:
+    MOCK_METHOD(void, Timeout, (), (override));
+};
+
 class MockTimedDoor : public TimedDoor {
 public:
     MockTimedDoor(int timeout) : TimedDoor(timeout) {}
@@ -19,17 +24,19 @@ public:
 class TaskDoorTime : public ::testing::Test {
 protected:
     MockTimedDoor* door;
+    MockTimerClient* mock_timer_client;
 
     void SetUp() override {
         door = new MockTimedDoor(100);
+        mock_timer_client = new MockTimerClient();
     }
 
     void TearDown() override {
         delete door;
+        delete mock_timer_client;
     }
 };
 
-// Тесты
 TEST_F(TaskDoorTime, DoorLockTest) {
     EXPECT_CALL(*door, lock()).Times(1);
     door->lock();
@@ -67,15 +74,13 @@ TEST_F(TaskDoorTime, ClosedDoorNoExceptionAfterTimeout) {
 
 TEST_F(TaskDoorTime, TimerRegistersClient) {
     Timer timer;
-    MockTimerClient mock_timer_client;
-    EXPECT_NO_THROW(timer.tregister(5, &mock_timer_client));
+    EXPECT_NO_THROW(timer.tregister(5, mock_timer_client));
 }
 
 TEST_F(TaskDoorTime, TimerTriggersTimeout) {
     Timer timer;
-    MockTimerClient mock_timer_client;
-    EXPECT_CALL(mock_timer_client, Timeout()).Times(1);
-    timer.tregister(5, &mock_timer_client);
+    EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
+    timer.tregister(5, mock_timer_client);
 }
 
 TEST_F(TaskDoorTime, TimedDoorGetTimeout) {
@@ -87,7 +92,7 @@ TEST_F(TaskDoorTime, DoorAndTimerInteractionTest) {
     DoorTimerAdapter adapter(*door);
 
     EXPECT_CALL(*door, unlock()).Times(1);
-    EXPECT_CALL(mock_timer_client, Timeout()).Times(1);
+    EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
 
     door->unlock();
     timer.tregister(5, &adapter);
