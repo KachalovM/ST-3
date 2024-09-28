@@ -15,21 +15,26 @@ class MockTimerClient : public TimerClient {
 class MockTimedDoor : public TimedDoor {
  public:
     explicit MockTimedDoor(int timeout) : TimedDoor(timeout) {}
+    MOCK_METHOD(void, lock, (), (override));
+    MOCK_METHOD(void, unlock, (), (override));
+    MOCK_METHOD(bool, isDoorOpened, (), (override));
 };
 
 class TaskDoorTime : public ::testing::Test {
  protected:
-    TimedDoor* door;
+    MockTimedDoor* door;
+    MockTimerClient* mock_timer_client;
 
     void SetUp() override {
-        door = new TimedDoor(100);
+        door = new MockTimedDoor(100);
+        mock_timer_client = new MockTimerClient();
     }
 
     void TearDown() override {
         delete door;
+        delete mock_timer_client;
     }
 };
-
 
 TEST_F(TaskDoorTime, DoorLockTest) {
     EXPECT_CALL(*door, lock()).Times(1);
@@ -56,7 +61,7 @@ TEST_F(TaskDoorTime, OpenedDoorThrowsExceptionAfterTimeout) {
         .Times(1)
         .WillOnce(::testing::Return(true));
 
-    EXPECT_THROW(door->throwState(), std::runtime_error); 
+    EXPECT_THROW(door->throwState(), std::runtime_error);
 }
 
 TEST_F(TaskDoorTime, ClosedDoorNoExceptionAfterTimeout) {
@@ -89,6 +94,5 @@ TEST_F(TaskDoorTime, DoorAndTimerInteractionTest) {
 
     door->unlock();
     Timer timer;
-    timer.tregister(5, &adapter);
-    adapter.Timeout();
+    timer.tregister(5, mock_timer_client);
 }
