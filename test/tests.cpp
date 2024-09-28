@@ -8,34 +8,28 @@
 #include "TimedDoor.h"
 
 class MockTimerClient : public TimerClient {
-public:
-    MOCK_METHOD(void, Timeout, (), (override));
+ public:
+    MOCK_METHOD(void, Timeout, ());
 };
 
 class MockTimedDoor : public TimedDoor {
-public:
-    MockTimedDoor(int timeout) : TimedDoor(timeout) {}
-
-    MOCK_METHOD(void, lock, (), (override));
-    MOCK_METHOD(void, unlock, (), (override));
-    MOCK_METHOD(bool, isDoorOpened, (), (override));
+ public:
+    explicit MockTimedDoor(int timeout) : TimedDoor(timeout) {}
 };
 
 class TaskDoorTime : public ::testing::Test {
-protected:
-    MockTimedDoor* door;
-    MockTimerClient* mock_timer_client;
+ protected:
+    TimedDoor* door;
 
     void SetUp() override {
-        door = new MockTimedDoor(100);
-        mock_timer_client = new MockTimerClient();
+        door = new TimedDoor(100);
     }
 
     void TearDown() override {
         delete door;
-        delete mock_timer_client;
     }
 };
+
 
 TEST_F(TaskDoorTime, DoorLockTest) {
     EXPECT_CALL(*door, lock()).Times(1);
@@ -57,14 +51,16 @@ TEST_F(TaskDoorTime, DoorOpenedTest) {
 }
 
 TEST_F(TaskDoorTime, OpenedDoorThrowsExceptionAfterTimeout) {
+    door->unlock();
     EXPECT_CALL(*door, isDoorOpened())
         .Times(1)
         .WillOnce(::testing::Return(true));
 
-    EXPECT_THROW(door->throwState(), std::runtime_error);
+    EXPECT_THROW(door->throwState(), std::runtime_error); 
 }
 
 TEST_F(TaskDoorTime, ClosedDoorNoExceptionAfterTimeout) {
+    door->lock();
     EXPECT_CALL(*door, isDoorOpened())
         .Times(1)
         .WillOnce(::testing::Return(false));
@@ -88,13 +84,11 @@ TEST_F(TaskDoorTime, TimedDoorGetTimeout) {
 }
 
 TEST_F(TaskDoorTime, DoorAndTimerInteractionTest) {
-    Timer timer;
-    DoorTimerAdapter adapter(*door);
-
     EXPECT_CALL(*door, unlock()).Times(1);
     EXPECT_CALL(*mock_timer_client, Timeout()).Times(1);
 
     door->unlock();
+    Timer timer;
     timer.tregister(5, &adapter);
     adapter.Timeout();
 }
